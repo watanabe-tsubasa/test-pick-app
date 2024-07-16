@@ -1,60 +1,42 @@
-import React, { useReducer, useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
-} from "@/components/ui/alert-dialog";
-import { HistoryCard } from './HistoryCard';
-import { NumberSelector, StringSelector } from './CommonSelector';
-import { timestampReducer } from '@/reducer';
-import { Loader2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-export interface Timestamps {
+interface Timestamps {
   start: string;
   picking: string;
   packing: string;
   complete: string;
 }
 
-export interface HistoryEntry extends Timestamps {
+interface HistoryEntry extends Timestamps {
   store: string;
   staff: string;
   orderNumber: string;
   submittedAt: string;
 }
 
-export const initialTimestamps = {
-  start: "",
-  picking: "",
-  packing: "",
-  complete: ""
-}
-
-export const PickingRateApp: React.FC = () => {
-  const storeValues = ['東雲', '八千代緑が丘', '葛西']
-  const staffValues = ['齋藤', '鉄川', '筒井', '渡邊', '岩岡', '坂口']
-  const orderValues = [1,2,3,4,5,6]
+const PickingRateApp: React.FC = () => {
   const [store, setStore] = useState<string>("");
   const [staff, setStaff] = useState<string>("");
   const [orderNumber, setOrderNumber] = useState<string>("");
-  const [timestamps, dispatch] = useReducer(timestampReducer, initialTimestamps);
+  const [timestamps, setTimestamps] = useState<Timestamps>({
+    start: "",
+    picking: "",
+    packing: "",
+    complete: ""
+  });
+  const [showAlert, setShowAlert] = useState<boolean>(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState<boolean>(false);
-  const [isFetching, setIsfetching] = useState<boolean>(false);
 
   const handleStoreChange = (value: string) => {
     if (!isLocked) setStore(value);
@@ -71,11 +53,11 @@ export const PickingRateApp: React.FC = () => {
   const handleButtonClick = (action: keyof Timestamps) => {
     const now = new Date();
     const timeString = now.toTimeString().slice(0, 8);
-    dispatch({ type:'SET_TIMESTAMP', action, value: timeString})
+    setTimestamps(prev => ({ ...prev, [action]: timeString }));
   };
 
   const handleTimeChange = (action: keyof Timestamps, value: string) => {
-    dispatch({ type: 'SET_TIMESTAMP', action, value})
+    setTimestamps(prev => ({ ...prev, [action]: value }));
   };
 
   const handleSubmit = () => {
@@ -90,20 +72,17 @@ export const PickingRateApp: React.FC = () => {
       ...timestamps,
       submittedAt: new Date().toLocaleString()
     };
-    setIsfetching(true);
-    setTimeout(() => {
-      setIsfetching(false);
-    }, 3000)
     setHistory(prev => [newEntry, ...prev]);
-    toast("Event has been created", {
-      description: "Sunday, December 03, 2023 at 9:00 AM",
-      action: {
-        label: "Undo",
-        onClick: () => console.log("Undo"),
-      },
-    })
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000);
     setShowConfirmDialog(false);
-    dispatch({ type: 'RESET_TIMESTAMPS' })
+    // Reset timestamps
+    setTimestamps({
+      start: "",
+      picking: "",
+      packing: "",
+      complete: ""
+    });
   };
 
   const isAllTimestampsSet = Object.values(timestamps).every(timestamp => timestamp !== "");
@@ -129,31 +108,43 @@ export const PickingRateApp: React.FC = () => {
               />
               <Label htmlFor="lock-switch">プルダウンをロック</Label>
             </div>
-            <StringSelector
-             onValueChange={handleStoreChange}
-             value={store}
-             disabled={isLocked}
-             placeholder='店舗を選択'
-             values={storeValues}
-            />
-            <StringSelector
-             onValueChange={handleStaffChange}
-             value={staff}
-             disabled={isLocked}
-             placeholder='担当者を選択'
-             values={staffValues}
-            />
-            <NumberSelector
-             onValueChange={handleOrderNumberChange}
-             value={orderNumber}
-             disabled={isLocked}
-             placeholder='注文番号を選択'
-             values={orderValues}
-            />
+            <Select onValueChange={handleStoreChange} value={store} disabled={isLocked}>
+              <SelectTrigger>
+                <SelectValue placeholder="店舗を選択" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="東雲">東雲</SelectItem>
+                <SelectItem value="八千代緑が丘">八千代緑が丘</SelectItem>
+                <SelectItem value="葛西">葛西</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select onValueChange={handleStaffChange} value={staff} disabled={isLocked}>
+              <SelectTrigger>
+                <SelectValue placeholder="担当者を選択" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="齋藤">齋藤</SelectItem>
+                <SelectItem value="鉄川">鉄川</SelectItem>
+                <SelectItem value="筒井">筒井</SelectItem>
+                <SelectItem value="渡邊">渡邊</SelectItem>
+                <SelectItem value="岩岡">岩岡</SelectItem>
+                <SelectItem value="坂口">坂口</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select onValueChange={handleOrderNumberChange} value={orderNumber} disabled={isLocked}>
+              <SelectTrigger>
+                <SelectValue placeholder="注文番号を選択" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6].map(num => (
+                  <SelectItem key={num} value={`注文${num}`}>注文{num}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="grid grid-cols-2 gap-4">
               {(Object.keys(timestamps) as Array<keyof Timestamps>).map((key) => (
                 <React.Fragment key={key}>
-                  <Button variant='secondary' onClick={() => handleButtonClick(key)} className="w-full">
+                  <Button onClick={() => handleButtonClick(key)} className="w-full">
                     {key === 'start' ? '移動開始' :
                      key === 'picking' ? 'ピッキング' :
                      key === 'packing' ? '梱包' : '完了'}
@@ -178,7 +169,7 @@ export const PickingRateApp: React.FC = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>確認</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {isFetching? <Loader2 className='animate-spin' /> :'データを送信しますか？'}
+                    データを送信しますか？
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -188,11 +179,35 @@ export const PickingRateApp: React.FC = () => {
               </AlertDialogContent>
             </AlertDialog>
           </CardFooter>
+          {showAlert && (
+            <Alert className="mt-4">
+              <AlertTitle>成功</AlertTitle>
+              <AlertDescription>データが正常に送信されました。</AlertDescription>
+            </Alert>
+          )}
         </Card>
       </TabsContent>
 
       <TabsContent value="history">
-        <HistoryCard history={history} />
+        <Card>
+          <CardHeader>
+            <CardTitle>履歴</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {history.map((entry, index) => (
+              <div key={index} className="mb-4 p-4 border rounded">
+                <p>店舗: {entry.store}</p>
+                <p>担当者: {entry.staff}</p>
+                <p>注文番号: {entry.orderNumber}</p>
+                <p>移動開始: {entry.start}</p>
+                <p>ピッキング: {entry.picking}</p>
+                <p>梱包: {entry.packing}</p>
+                <p>完了: {entry.complete}</p>
+                <p>送信時刻: {entry.submittedAt}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </TabsContent>
     </Tabs>
   );
