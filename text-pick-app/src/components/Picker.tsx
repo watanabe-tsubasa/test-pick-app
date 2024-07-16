@@ -65,7 +65,7 @@ const PickingRateApp: React.FC = () => {
     setShowConfirmDialog(true);
   };
 
-  const confirmSubmit = () => {
+  const confirmSubmit = async () => {
     const newEntry: HistoryEntry = {
       store,
       staff,
@@ -73,10 +73,8 @@ const PickingRateApp: React.FC = () => {
       ...timestamps,
       submittedAt: new Date().toLocaleString()
     };
-    setIsFetching(true);
-    setTimeout(() => {
-      setIsFetching(false)
-    }, 3000);
+    // fetcher
+    await fetcher()
     setHistory(prev => [newEntry, ...prev]);
     setShowAlert(true);
     setTimeout(() => setShowAlert(false), 3000);
@@ -91,6 +89,29 @@ const PickingRateApp: React.FC = () => {
   };
 
   const isAllTimestampsSet = Object.values(timestamps).every(timestamp => timestamp !== "");
+  const fetcher = async () => {
+    setIsFetching(true)
+    try {
+      const res =  await fetch(`https://api.steinhq.com/v1/storages/6695d1ac4d11fd04f013d7f0/${store}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify([{
+          '担当者': staff,
+          '注文番号': orderNumber,
+          '移動開始': timestamps.start,
+          'ピッキング': timestamps.picking,
+          '梱包': timestamps.packing,
+          '完了': timestamps.complete
+        }])
+      });
+      const json = await res.json();
+      console.log(json);  
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsFetching(false);
+    }
+  }
 
   return (
     <Tabs defaultValue="input" className="w-full max-w-3xl mx-auto">
