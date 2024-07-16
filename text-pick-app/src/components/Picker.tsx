@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useReducer, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -19,9 +18,11 @@ import {
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { HistoryCard } from './HistoryCard';
-import { CommonSelector } from './CommonSelector';
+import { NumberSelector, StringSelector } from './CommonSelector';
+import { timestampReducer } from '@/reducer';
+import { Loader2 } from 'lucide-react';
 
-interface Timestamps {
+export interface Timestamps {
   start: string;
   picking: string;
   packing: string;
@@ -35,21 +36,25 @@ export interface HistoryEntry extends Timestamps {
   submittedAt: string;
 }
 
+export const initialTimestamps = {
+  start: "",
+  picking: "",
+  packing: "",
+  complete: ""
+}
+
 export const PickingRateApp: React.FC = () => {
   const storeValues = ['東雲', '八千代緑が丘', '葛西']
+  const staffValues = ['齋藤', '鉄川', '筒井', '渡邊', '岩岡', '坂口']
+  const orderValues = [1,2,3,4,5,6]
   const [store, setStore] = useState<string>("");
   const [staff, setStaff] = useState<string>("");
   const [orderNumber, setOrderNumber] = useState<string>("");
-  const [timestamps, setTimestamps] = useState<Timestamps>({
-    start: "",
-    picking: "",
-    packing: "",
-    complete: ""
-  });
-  const [showAlert, setShowAlert] = useState<boolean>(false);
+  const [timestamps, dispatch] = useReducer(timestampReducer, initialTimestamps);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState<boolean>(false);
+  const [isFetching, setIsfetching] = useState<boolean>(false);
 
   const handleStoreChange = (value: string) => {
     if (!isLocked) setStore(value);
@@ -66,11 +71,11 @@ export const PickingRateApp: React.FC = () => {
   const handleButtonClick = (action: keyof Timestamps) => {
     const now = new Date();
     const timeString = now.toTimeString().slice(0, 8);
-    setTimestamps(prev => ({ ...prev, [action]: timeString }));
+    dispatch({ type:'SET_TIMESTAMP', action, value: timeString})
   };
 
   const handleTimeChange = (action: keyof Timestamps, value: string) => {
-    setTimestamps(prev => ({ ...prev, [action]: value }));
+    dispatch({ type: 'SET_TIMESTAMP', action, value})
   };
 
   const handleSubmit = () => {
@@ -85,17 +90,20 @@ export const PickingRateApp: React.FC = () => {
       ...timestamps,
       submittedAt: new Date().toLocaleString()
     };
+    setIsfetching(true);
+    setTimeout(() => {
+      setIsfetching(false);
+    }, 3000)
     setHistory(prev => [newEntry, ...prev]);
-    setShowAlert(true);
-    setTimeout(() => setShowAlert(false), 3000);
+    toast("Event has been created", {
+      description: "Sunday, December 03, 2023 at 9:00 AM",
+      action: {
+        label: "Undo",
+        onClick: () => console.log("Undo"),
+      },
+    })
     setShowConfirmDialog(false);
-    // Reset timestamps
-    setTimestamps({
-      start: "",
-      picking: "",
-      packing: "",
-      complete: ""
-    });
+    dispatch({ type: 'RESET_TIMESTAMPS' })
   };
 
   const isAllTimestampsSet = Object.values(timestamps).every(timestamp => timestamp !== "");
@@ -121,38 +129,31 @@ export const PickingRateApp: React.FC = () => {
               />
               <Label htmlFor="lock-switch">プルダウンをロック</Label>
             </div>
-            <CommonSelector
+            <StringSelector
              onValueChange={handleStoreChange}
              value={store}
              disabled={isLocked}
              placeholder='店舗を選択'
              values={storeValues}
             />
-
-            <Select onValueChange={handleStaffChange} value={staff} disabled={isLocked}>
-              <SelectTrigger>
-                <SelectValue placeholder="担当者を選択" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="山田">山田</SelectItem>
-                <SelectItem value="佐藤">佐藤</SelectItem>
-                <SelectItem value="鈴木">鈴木</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select onValueChange={handleOrderNumberChange} value={orderNumber} disabled={isLocked}>
-              <SelectTrigger>
-                <SelectValue placeholder="注文番号を選択" />
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 2, 3, 4, 5, 6].map(num => (
-                  <SelectItem key={num} value={`注文${num}`}>注文{num}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <StringSelector
+             onValueChange={handleStaffChange}
+             value={staff}
+             disabled={isLocked}
+             placeholder='担当者を選択'
+             values={staffValues}
+            />
+            <NumberSelector
+             onValueChange={handleOrderNumberChange}
+             value={orderNumber}
+             disabled={isLocked}
+             placeholder='注文番号を選択'
+             values={orderValues}
+            />
             <div className="grid grid-cols-2 gap-4">
               {(Object.keys(timestamps) as Array<keyof Timestamps>).map((key) => (
                 <React.Fragment key={key}>
-                  <Button onClick={() => handleButtonClick(key)} className="w-full">
+                  <Button variant='secondary' onClick={() => handleButtonClick(key)} className="w-full">
                     {key === 'start' ? '移動開始' :
                      key === 'picking' ? 'ピッキング' :
                      key === 'packing' ? '梱包' : '完了'}
@@ -177,7 +178,7 @@ export const PickingRateApp: React.FC = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>確認</AlertDialogTitle>
                   <AlertDialogDescription>
-                    データを送信しますか？
+                    {isFetching? <Loader2 /> :'データを送信しますか？'}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -187,12 +188,6 @@ export const PickingRateApp: React.FC = () => {
               </AlertDialogContent>
             </AlertDialog>
           </CardFooter>
-          {showAlert && (
-            <Alert className="mt-4">
-              <AlertTitle>成功</AlertTitle>
-              <AlertDescription>データが正常に送信されました。</AlertDescription>
-            </Alert>
-          )}
         </Card>
       </TabsContent>
 
