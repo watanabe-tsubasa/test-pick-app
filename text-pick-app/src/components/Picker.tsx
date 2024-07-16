@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Loader2 } from 'lucide-react';
 
 interface Timestamps {
@@ -39,6 +39,7 @@ const PickingRateApp: React.FC = () => {
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState<boolean>(false);
   const [isFetching, setIsFetching] = useState<boolean>(false);
+
   const handleStoreChange = (value: string) => {
     if (!isLocked) setStore(value);
   };
@@ -66,9 +67,9 @@ const PickingRateApp: React.FC = () => {
   };
 
   const confirmSubmit = async () => {
-    setIsFetching(true)
+    setIsFetching(true);
     try {
-      const res =  await fetch(`https://api.steinhq.com/v1/storages/6695d1ac4d11fd04f013d7f0/${store}`, {
+      const res = await fetch(`https://api.steinhq.com/v1/storages/6695d1ac4d11fd04f013d7f0/${store}`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify([{
@@ -82,9 +83,7 @@ const PickingRateApp: React.FC = () => {
       });
       const json = await res.json();
       console.log(json);  
-    } catch (error) {
-      console.error(error);
-    } finally {
+      
       const newEntry: HistoryEntry = {
         store,
         staff,
@@ -92,11 +91,10 @@ const PickingRateApp: React.FC = () => {
         ...timestamps,
         submittedAt: new Date().toLocaleString()
       };
-      setIsFetching(false);
       setHistory(prev => [newEntry, ...prev]);
       setShowAlert(true);
       setTimeout(() => setShowAlert(false), 3000);
-      setShowConfirmDialog(false);
+      
       // Reset timestamps
       setTimestamps({
         start: "",
@@ -104,6 +102,11 @@ const PickingRateApp: React.FC = () => {
         packing: "",
         complete: ""
       });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsFetching(false);
+      setShowConfirmDialog(false);
     }
   };
 
@@ -183,25 +186,26 @@ const PickingRateApp: React.FC = () => {
             </div>
           </CardContent>
           <CardFooter>
-            <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-              <AlertDialogTrigger asChild>
+            <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+              <DialogTrigger asChild>
                 <Button onClick={handleSubmit} className="w-full" disabled={!isAllTimestampsSet}>送信</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>確認</AlertDialogTitle>
-                  <AlertDialogDescription>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>確認</DialogTitle>
+                  <DialogDescription>
                     データを送信しますか？
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                  <AlertDialogAction onClick={confirmSubmit}>
-                    {isFetching ? <Loader2 className='animate-spin' /> : '送信'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button className='m-1' variant="outline" onClick={() => setShowConfirmDialog(false)}>キャンセル</Button>
+                  <Button className='m-1' onClick={confirmSubmit} disabled={isFetching}>
+                    {isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {isFetching ? '送信中...' : '送信'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardFooter>
           {showAlert && (
             <Alert className="mt-4">
