@@ -66,30 +66,6 @@ const PickingRateApp: React.FC = () => {
   };
 
   const confirmSubmit = async () => {
-    const newEntry: HistoryEntry = {
-      store,
-      staff,
-      orderNumber,
-      ...timestamps,
-      submittedAt: new Date().toLocaleString()
-    };
-    // fetcher
-    await fetcher()
-    setHistory(prev => [newEntry, ...prev]);
-    setShowAlert(true);
-    setTimeout(() => setShowAlert(false), 3000);
-    setShowConfirmDialog(false);
-    // Reset timestamps
-    setTimestamps({
-      start: "",
-      picking: "",
-      packing: "",
-      complete: ""
-    });
-  };
-
-  const isAllTimestampsSet = Object.values(timestamps).every(timestamp => timestamp !== "");
-  const fetcher = async () => {
     setIsFetching(true)
     try {
       const res =  await fetch(`https://api.steinhq.com/v1/storages/6695d1ac4d11fd04f013d7f0/${store}`, {
@@ -109,9 +85,29 @@ const PickingRateApp: React.FC = () => {
     } catch (error) {
       console.error(error);
     } finally {
+      const newEntry: HistoryEntry = {
+        store,
+        staff,
+        orderNumber,
+        ...timestamps,
+        submittedAt: new Date().toLocaleString()
+      };
       setIsFetching(false);
+      setHistory(prev => [newEntry, ...prev]);
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
+      setShowConfirmDialog(false);
+      // Reset timestamps
+      setTimestamps({
+        start: "",
+        picking: "",
+        packing: "",
+        complete: ""
+      });
     }
-  }
+  };
+
+  const isAllTimestampsSet = Object.values(timestamps).every(timestamp => timestamp !== "");
 
   return (
     <Tabs defaultValue="input" className="w-full max-w-3xl mx-auto">
