@@ -178,7 +178,7 @@ export const PickingRateApp: React.FC = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>確認</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {isFetching? <Loader2 /> :'データを送信しますか？'}
+                    {isFetching? <Loader2 className='animate-spin' /> :'データを送信しますか？'}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
