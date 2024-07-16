@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Loader2 } from 'lucide-react';
 
 interface Timestamps {
   start: string;
@@ -37,7 +38,7 @@ const PickingRateApp: React.FC = () => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState<boolean>(false);
-
+  const [isFetching, setIsFetching] = useState<boolean>(false);
   const handleStoreChange = (value: string) => {
     if (!isLocked) setStore(value);
   };
@@ -72,6 +73,10 @@ const PickingRateApp: React.FC = () => {
       ...timestamps,
       submittedAt: new Date().toLocaleString()
     };
+    setIsFetching(true);
+    setTimeout(() => {
+      setIsFetching(false)
+    }, 3000);
     setHistory(prev => [newEntry, ...prev]);
     setShowAlert(true);
     setTimeout(() => setShowAlert(false), 3000);
@@ -174,7 +179,9 @@ const PickingRateApp: React.FC = () => {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                  <AlertDialogAction onClick={confirmSubmit}>送信</AlertDialogAction>
+                  <AlertDialogAction onClick={confirmSubmit}>
+                    {isFetching ? <Loader2 className='animate-spin' /> : '送信'}
+                  </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
