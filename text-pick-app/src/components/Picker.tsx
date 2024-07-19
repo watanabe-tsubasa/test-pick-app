@@ -11,10 +11,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Loader2 } from 'lucide-react';
 
 interface Timestamps {
-  start: string;
+  ready: string;
+  moveStart: string;
+  moveEnd: string;
   picking: string;
   packing: string;
   complete: string;
+  customerStart: string;
+  customerEnd: string;
 }
 
 interface HistoryEntry extends Timestamps {
@@ -29,10 +33,14 @@ const PickingRateApp: React.FC = () => {
   const [staff, setStaff] = useState<string>("");
   const [orderNumber, setOrderNumber] = useState<string>("");
   const [timestamps, setTimestamps] = useState<Timestamps>({
-    start: "",
+    ready: "",
+    moveStart: "",
+    moveEnd: "",
     picking: "",
     packing: "",
-    complete: ""
+    complete: "",
+    customerStart: "",
+    customerEnd: "",
   });
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -48,11 +56,11 @@ const PickingRateApp: React.FC = () => {
     if (!isLocked) setStaff(value);
   };
 
-  const handleOrderNumberChange = (value: string) => {
-    if (!isLocked) setOrderNumber(value);
+  const handleOrderNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isLocked) setOrderNumber(e.target.value);
   };
 
-  const handleButtonClick = (action: keyof Timestamps) => {
+  const handleTimeStamp = (action: keyof Timestamps) => {
     const now = new Date();
     const timeString = now.toTimeString().slice(0, 8);
     setTimestamps(prev => ({ ...prev, [action]: timeString }));
@@ -63,6 +71,7 @@ const PickingRateApp: React.FC = () => {
   };
 
   const handleSubmit = () => {
+    handleTimeStamp('complete');
     setShowConfirmDialog(true);
   };
 
@@ -75,10 +84,14 @@ const PickingRateApp: React.FC = () => {
         body: JSON.stringify([{
           '担当者': staff,
           '注文番号': orderNumber,
-          '移動開始': timestamps.start,
-          'ピッキング': timestamps.picking,
-          '梱包': timestamps.packing,
-          '完了': timestamps.complete
+          '準備開始': timestamps.ready,
+          '移動開始': timestamps.moveStart,
+          '棚前到着': timestamps.moveEnd,
+          'ピック開始': timestamps.picking,
+          '梱包開始': timestamps.packing,
+          '完了': timestamps.complete,
+          'お客さま対応開始': timestamps.customerStart,
+          'お客さま対応終了': timestamps.customerEnd,
         }])
       });
       const json = await res.json();
@@ -97,10 +110,14 @@ const PickingRateApp: React.FC = () => {
       
       // Reset timestamps
       setTimestamps({
-        start: "",
+        ready: "",
+        moveStart: timestamps.complete,
+        moveEnd: "",
         picking: "",
         packing: "",
-        complete: ""
+        complete: "",
+        customerStart: "",
+        customerEnd: "",
       });
     } catch (error) {
       console.error(error);
@@ -110,85 +127,93 @@ const PickingRateApp: React.FC = () => {
     }
   };
 
-  const isAllTimestampsSet = Object.values(timestamps).every(timestamp => timestamp !== "");
-
   return (
     <Tabs defaultValue="input" className="w-full max-w-3xl mx-auto">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="input">データ入力</TabsTrigger>
         <TabsTrigger value="history">履歴</TabsTrigger>
       </TabsList>
-
       <TabsContent value="input">
         <Card>
           <CardHeader>
-            <CardTitle>ピッキングレート計測</CardTitle>
+            <div className='flex'>
+              <CardTitle className='flex items-center flex-grow'>ピッキングレート計測</CardTitle>
+              <div className="flex flex-col items-center space-y-2">
+                <Label htmlFor="lock-switch">ロック</Label>
+                <Switch
+                  id="lock-switch"
+                  checked={isLocked}
+                  onCheckedChange={setIsLocked}
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="lock-switch"
-                checked={isLocked}
-                onCheckedChange={setIsLocked}
-              />
-              <Label htmlFor="lock-switch">プルダウンをロック</Label>
+            <div className='grid grid-cols-2 gap-2'>
+              <Select onValueChange={handleStoreChange} value={store} disabled={isLocked}>
+                <SelectTrigger>
+                  <SelectValue placeholder="店舗を選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="東雲">東雲</SelectItem>
+                  <SelectItem value="八千代緑が丘">八千代緑が丘</SelectItem>
+                  <SelectItem value="葛西">葛西</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select onValueChange={handleStaffChange} value={staff} disabled={isLocked}>
+                <SelectTrigger>
+                  <SelectValue placeholder="担当者を選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="齋藤">齋藤</SelectItem>
+                  <SelectItem value="鉄川">鉄川</SelectItem>
+                  <SelectItem value="筒井">筒井</SelectItem>
+                  <SelectItem value="渡邊">渡邊</SelectItem>
+                  <SelectItem value="岩岡">岩岡</SelectItem>
+                  <SelectItem value="坂口">坂口</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select onValueChange={handleStoreChange} value={store} disabled={isLocked}>
-              <SelectTrigger>
-                <SelectValue placeholder="店舗を選択" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="東雲">東雲</SelectItem>
-                <SelectItem value="八千代緑が丘">八千代緑が丘</SelectItem>
-                <SelectItem value="葛西">葛西</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select onValueChange={handleStaffChange} value={staff} disabled={isLocked}>
-              <SelectTrigger>
-                <SelectValue placeholder="担当者を選択" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="齋藤">齋藤</SelectItem>
-                <SelectItem value="鉄川">鉄川</SelectItem>
-                <SelectItem value="筒井">筒井</SelectItem>
-                <SelectItem value="渡邊">渡邊</SelectItem>
-                <SelectItem value="岩岡">岩岡</SelectItem>
-                <SelectItem value="坂口">坂口</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select onValueChange={handleOrderNumberChange} value={orderNumber} disabled={isLocked}>
-              <SelectTrigger>
-                <SelectValue placeholder="注文番号を選択" />
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 2, 3, 4, 5, 6].map(num => (
-                  <SelectItem key={num} value={`注文${num}`}>注文{num}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="grid grid-cols-2 gap-4">
-              {(Object.keys(timestamps) as Array<keyof Timestamps>).map((key) => (
-                <React.Fragment key={key}>
-                  <Button onClick={() => handleButtonClick(key)} className="w-full">
-                    {key === 'start' ? '移動開始' :
-                     key === 'picking' ? 'ピッキング' :
-                     key === 'packing' ? '梱包' : '完了'}
-                  </Button>
-                  <Input
-                    type="time"
-                    value={timestamps[key]}
-                    onChange={(e) => handleTimeChange(key, e.target.value)}
-                    step="1"
-                    className="w-full"
-                  />
-                </React.Fragment>
+            <Input
+             type="text"
+             placeholder='注文番号を入力'
+             value={orderNumber}
+             onChange={handleOrderNumberChange}
+             disabled={isLocked}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              {(Object.keys(timestamps) as Array<keyof Timestamps>)
+                .filter((key) => key !== 'complete')
+                .map((key) => (
+                  <React.Fragment key={key}>
+                    <Button 
+                      variant={['ready', 'moveStart', 'customerStart', 'customerEnd'].includes(key) ? "outline" : "secondary"} 
+                      onClick={() => handleTimeStamp(key)} 
+                      className="w-full"
+                    >
+                      {key === 'ready' ? '準備開始' :
+                      key === 'moveStart' ? '移動開始' :
+                      key === 'moveEnd' ? '棚前到着' :
+                      key === 'picking' ? 'ピック開始' :
+                      key === 'packing' ? '梱包開始' :
+                      key === 'customerStart' ? 'お客さま対応開始' :
+                      'お客さま対応終了'}
+                    </Button>
+                    <Input
+                      type="time"
+                      value={timestamps[key]}
+                      onChange={(e) => handleTimeChange(key, e.target.value)}
+                      step="1"
+                      className="w-full"
+                    />
+                  </React.Fragment>
               ))}
             </div>
           </CardContent>
           <CardFooter>
             <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
               <DialogTrigger asChild>
-                <Button onClick={handleSubmit} className="w-full" disabled={!isAllTimestampsSet}>送信</Button>
+                <Button onClick={handleSubmit} className="w-full">完了</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -200,7 +225,7 @@ const PickingRateApp: React.FC = () => {
                 <DialogFooter>
                   <Button className='m-1' variant="outline" onClick={() => setShowConfirmDialog(false)}>キャンセル</Button>
                   <Button className='m-1' onClick={confirmSubmit} disabled={isFetching}>
-                    {isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {isFetching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                     {isFetching ? '送信中...' : '送信'}
                   </Button>
                 </DialogFooter>
@@ -223,15 +248,18 @@ const PickingRateApp: React.FC = () => {
           </CardHeader>
           <CardContent>
             {history.map((entry, index) => (
-              <div key={index} className="mb-4 p-4 border rounded">
+              <div key={index} className="p-4 mb-4 border rounded">
                 <p>店舗: {entry.store}</p>
                 <p>担当者: {entry.staff}</p>
                 <p>注文番号: {entry.orderNumber}</p>
-                <p>移動開始: {entry.start}</p>
-                <p>ピッキング: {entry.picking}</p>
-                <p>梱包: {entry.packing}</p>
+                <p>準備開始: {entry.ready}</p>
+                <p>移動開始: {entry.moveStart}</p>
+                <p>棚前到着: {entry.moveEnd}</p>
+                <p>ピック開始: {entry.picking}</p>
+                <p>梱包開始: {entry.packing}</p>
                 <p>完了: {entry.complete}</p>
-                <p>送信時刻: {entry.submittedAt}</p>
+                <p>お客さま対応開始: {entry.customerStart}</p>
+                <p>お客さま対応終了: {entry.customerEnd}</p>
               </div>
             ))}
           </CardContent>
