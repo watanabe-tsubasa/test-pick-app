@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 
 interface Timestamps {
   ready: string;
@@ -66,8 +66,12 @@ const PickingRateApp: React.FC = () => {
     setTimestamps(prev => ({ ...prev, [action]: timeString }));
   };
 
-  const handleTimeChange = (action: keyof Timestamps, value: string) => {
-    setTimestamps(prev => ({ ...prev, [action]: value }));
+  // const handleTimeChange = (action: keyof Timestamps, value: string) => {
+  //   setTimestamps(prev => ({ ...prev, [action]: value }));
+  // };
+
+  const handleTimeReset = (action: keyof Timestamps) => {
+    setTimestamps(prev => ({ ...prev, [action]: "" }));
   };
 
   const handleSubmit = () => {
@@ -181,7 +185,7 @@ const PickingRateApp: React.FC = () => {
              onChange={handleOrderNumberChange}
              disabled={isLocked}
             />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {(Object.keys(timestamps) as Array<keyof Timestamps>)
                 .filter((key) => key !== 'complete')
                 .map((key) => (
@@ -189,7 +193,7 @@ const PickingRateApp: React.FC = () => {
                     <Button 
                       variant={['ready', 'moveStart', 'customerStart', 'customerEnd'].includes(key) ? "outline" : "secondary"} 
                       onClick={() => handleTimeStamp(key)} 
-                      className="w-full"
+                      className="w-full col-span-2"
                     >
                       {key === 'ready' ? '準備開始' :
                       key === 'moveStart' ? '移動開始' :
@@ -199,13 +203,14 @@ const PickingRateApp: React.FC = () => {
                       key === 'customerStart' ? 'お客さま対応開始' :
                       'お客さま対応終了'}
                     </Button>
-                    <Input
-                      type="time"
-                      value={timestamps[key]}
-                      onChange={(e) => handleTimeChange(key, e.target.value)}
-                      step="1"
-                      className="w-full"
-                    />
+                    <div className='flex items-start justify-center'>
+                      <p className="flex items-center justify-center h-full">
+                        {timestamps[key]}
+                      </p>
+                    </div>
+                    <Button variant="ghost" onClick={() => {handleTimeReset(key)}}>
+                      <Trash2 />
+                    </Button>
                   </React.Fragment>
               ))}
             </div>
